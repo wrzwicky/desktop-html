@@ -1,17 +1,16 @@
 # Home Desktop
 
-A single-file home page for your home server that behaves like a computer desktop. Add icons that link to your services, drag them wherever you like, and group them with colored frames.
+A single-file home page for your home server that behaves like a computer desktop. Can be managed fully from the browser, no need to edit files on the server.
 
-AI NOTE: Generated with Claude AI. Contains exactly the features I want, no more or less.
+AI NOTE: Generated with Claude AI to contain exactly the features I want, no more or less.
 
 ![Screenshot](desktop.jpg)
 
 ## Features
 
-- Icons that link to your services, with a name, an optional subtitle, and an emoji, letters, or an image as the icon
-- Free-form dragging with no grid
-- Frames: titled, rounded rectangles with a custom color and fill opacity, always drawn behind icons. Dragging a frame carries along every icon it visibly touches
-- Tidy up: nudges icons the smallest distance needed to line them up with their neighbors, and Revert undoes it
+- Icons that link to your services
+- Frames to group icons
+- Tidy up: nudges icon to line them up with their neighbors, and Revert undoes it
 - Layout saved on the server so every device sees the same desktop, with a copy kept in each browser as a fallback
 - Export and import the layout as a JSON file
 - No dependencies, no build step, one HTML file
