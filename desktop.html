@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home Server</title>
+<style>
+:root{--bg1:#1e3a5f;--bg2:#4b2a63;--panel:rgba(20,22,30,.82);--text:#fff;--accent:#5aa9ff}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text)}
+body{background:linear-gradient(135deg,var(--bg1),var(--bg2));user-select:none;-webkit-user-select:none}
+#desk{position:absolute;inset:0 0 44px 0;overflow:hidden}
+.icon{position:absolute;z-index:1;width:96px;padding:8px 4px;text-align:center;border-radius:10px;cursor:pointer;touch-action:none}
+.icon:hover{background:rgba(255,255,255,.14)}
+.icon.drag{background:rgba(255,255,255,.22);z-index:50;opacity:.9}
+.frame{position:absolute;z-index:0;border-radius:18px;border:1.5px solid;touch-action:none;cursor:move}
+.ftitle{padding:8px 14px;font-size:14px;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,.8);pointer-events:none}
+.grip{position:absolute;right:0;bottom:0;width:22px;height:22px;cursor:nwse-resize;border-radius:0 0 18px 0;
+  background:linear-gradient(135deg,transparent 55%,rgba(255,255,255,.55) 55%,rgba(255,255,255,.55) 63%,transparent 63%,transparent 75%,rgba(255,255,255,.55) 75%,rgba(255,255,255,.55) 83%,transparent 83%)}
+.frame .badge{top:6px}.frame .badge.e{left:auto;right:36px}.frame .badge.d{right:8px}
+#desk.drawing{cursor:crosshair;touch-action:none}
+#hint{display:none;position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:60;pointer-events:none;background:var(--panel);padding:8px 14px;border-radius:10px;font-size:14px}
+dialog input[type=range]{padding:0}
+.f{display:flex;align-items:center;gap:8px}
+.f i{flex:none;width:24px;text-align:center;font-style:normal;font-size:18px}
+.f input{flex:1;min-width:0}
+.glyph img{width:56px;height:56px;object-fit:contain;pointer-events:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.4))}
+.glyph{width:56px;height:56px;margin:0 auto 6px;border-radius:14px;display:grid;place-items:center;font-size:30px;box-shadow:0 4px 12px rgba(0,0,0,.35)}
+.sub{font-size:11px;line-height:1.2;margin-top:2px;opacity:.75;text-shadow:0 1px 3px rgba(0,0,0,.8);word-break:break-word}
+.label{font-size:13px;line-height:1.2;text-shadow:0 1px 3px rgba(0,0,0,.8);word-break:break-word}
+.badge{display:none;position:absolute;top:0;width:22px;height:22px;border-radius:50%;background:#222;border:1px solid #888;font-size:12px;line-height:20px;color:#fff}
+.badge.e{left:4px}.badge.d{right:4px;background:#b3261e}
+.editing .badge{display:block}
+#bar{position:absolute;left:0;right:0;bottom:0;height:44px;background:var(--panel);backdrop-filter:blur(10px);display:flex;align-items:center;gap:8px;padding:0 10px}
+#bar button{background:rgba(255,255,255,.1);border:0;color:#fff;padding:7px 12px;border-radius:8px;font-size:14px;cursor:pointer}
+#bar button:hover{background:rgba(255,255,255,.2)}
+#bar button.on{background:var(--accent);color:#000}
+#clock{font-size:14px;font-variant-numeric:tabular-nums}
+#menu{position:fixed;display:none;min-width:150px;background:var(--panel);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:4px;z-index:100}
+#menu div{padding:8px 12px;border-radius:6px;font-size:14px;cursor:pointer}
+#menu div:hover{background:rgba(255,255,255,.15)}
+#menu .mrow{display:flex;padding:0}
+#menu .mrow:hover,#menu .off:hover{background:none}
+#menu .mrow div{flex:1;white-space:nowrap}
+#menu .off{opacity:.4;cursor:default}
+dialog{border:1px solid rgba(255,255,255,.2);border-radius:14px;background:#1b1d27;color:#fff;padding:20px;width:min(360px,92vw)}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+dialog h3{margin:0 0 12px}
+dialog label{display:block;font-size:12px;opacity:.7;margin:10px 0 3px}
+dialog input{width:100%;padding:8px;border-radius:8px;border:1px solid #444;background:#10121a;color:#fff;font-size:15px}
+dialog input[type=color]{height:38px;padding:2px}
+.row{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
+.row button{padding:8px 14px;border-radius:8px;border:0;font-size:14px;cursor:pointer;background:#333;color:#fff}
+.row .ok{background:var(--accent);color:#000}
+</style>
+</head>
+<body>
+<div id="desk"></div>
+<div id="bar">
+  <button id="add">＋ Add icon</button>
+  <button id="addFrame">▭ Add frame</button>
+  <button id="edit">✎ Edit</button>
+  <button id="more">⚙ More</button>
+  <span id="sync" style="margin-left:auto;font-size:13px;color:#ffb86b"></span>
+  <span id="clock"></span>
+</div>
+<div id="hint">Drag on the desktop to draw a frame · Esc to cancel</div>
+<div id="menu"></div>
+
+<dialog id="dlg">
+  <h3 id="dtitle">Icon</h3>
+  <label>Name</label><div class="f"><i>🏷️</i><input id="fName"></div>
+  <label>Subtitle (optional)</label><div class="f"><i>💬</i><input id="fSub"></div>
+  <label>URL (e.g. http://192.168.1.10:8096)</label><div class="f"><i>🔗</i><input id="fUrl"></div>
+  <label>Icon (emoji, a few letters, or an image URL)</label><div class="f"><i>🖼️</i><input id="fGlyph"></div>
+  <label>Color</label><div class="f"><i>🎨</i><input id="fColor" type="color"></div>
+  <div class="row"><button id="cancel">Cancel</button><button class="ok" id="save">Save</button></div>
+</dialog>
+<dialog id="fdlg">
+  <h3 id="gHead">Frame</h3>
+  <label>Title</label><div class="f"><i>🏷️</i><input id="gTitle"></div>
+  <label>Color</label><div class="f"><i>🎨</i><input id="gColor" type="color"></div>
+  <label>Fill opacity: <span id="gVal"></span></label><div class="f"><i>💧</i><input id="gAlpha" type="range" min="0" max="100"></div>
+  <div class="row"><button id="gCancel">Cancel</button><button class="ok" id="gSave">Save</button></div>
+</dialog>
+<input type="file" id="file" accept=".json" hidden>
+
+<script>
+const GX = 104, GY = 120, PAD = 12, KEY = "homeDesktop.v1";
+const COLORS = ["#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6","#06b6d4","#ec4899"];
+const $ = id => document.getElementById(id);
+const desk = $("desk"), menu = $("menu"), dlg = $("dlg");
+
+const defaults = {
+  icons: [
+    {id:1,name:"Router",url:"http://192.168.1.1",glyph:"📡",color:"#3b82f6",x:12,y:12},
+    {id:2,name:"Media",url:"http://localhost:8096",glyph:"🎬",color:"#8b5cf6",x:116,y:12},
+    {id:3,name:"Files",url:"http://localhost:8080",glyph:"📁",color:"#f59e0b",x:220,y:12}
+  ],
+  frames: [],
+  newTab: true
+};
+
+let state;
+try { state = JSON.parse(localStorage.getItem(KEY)) || structuredClone(defaults); }
+catch (e) { state = structuredClone(defaults); }
+fix(state);
+
+const SERVER = "data/layout.json";   // saved next to this page on the server
+let saveT;
+function setSync(ok) {
+  $("sync").textContent = ok ? "" : "⚠ not synced";
+  $("sync").title = ok ? "" : "Could not save to the server; changes are kept in this browser only";
+}
+function persist() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  clearTimeout(saveT); saveT = setTimeout(push, 300);
+}
+async function push() {
+  try {
+    const r = await fetch(SERVER, {method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify(state)});
+    setSync(r.ok);
+  } catch (e) { setSync(false); }
+}
+async function pull() {
+  try {
+    const r = await fetch(SERVER, {cache: "no-store"});
+    if (r.status === 404) return push();
+    if (!r.ok) return;
+    const d = await r.json();
+    if (Array.isArray(d.icons)) {
+      state = fix(d);
+      try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+      render();
+    } else push();   // empty file: seed it with what this browser has
+  } catch (e) { setSync(false); }
+}
+const dims = () => ({cols: Math.max(1, Math.floor((desk.clientWidth - PAD) / GX)),
+                     rows: Math.max(1, Math.floor((desk.clientHeight - PAD) / GY))});
+function fix(s) {   // older layouts stored grid cells (c, r); convert to pixel positions
+  s.frames = s.frames || [];
+  for (const i of s.icons) {
+    if (i.x == null) { i.x = PAD + (i.c || 0) * GX; i.y = PAD + (i.r || 0) * GY; }
+    delete i.c; delete i.r;
+  }
+  return s;
+}
+function freeSpot() {   // first open place for a new icon (placement only, not snapping)
+  const {cols, rows} = dims();
+  for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) {
+    const x = PAD + c * GX, y = PAD + r * GY;
+    if (!state.icons.some(i => Math.abs(i.x - x) < GX && Math.abs(i.y - y) < GY)) return {x, y};
+  }
+  return {x: PAD, y: PAD};
+}
+
+function render() {
+  desk.innerHTML = "";
+  desk.classList.toggle("editing", $("edit").classList.contains("on"));
+  for (const f of state.frames) {
+    const el = document.createElement("div");
+    el.className = "frame";
+    el.style.cssText = `left:${f.x}px;top:${f.y}px;width:${f.w}px;height:${f.h}px;background:${rgba(f.color, f.alpha)};border-color:${rgba(f.color, .8)}`;
+    el.innerHTML = '<div class="ftitle"></div><div class="grip"></div><div class="badge e" title="Edit">✎</div><div class="badge d" title="Remove">✕</div>';
+    el.querySelector(".ftitle").textContent = f.title;
+    el.querySelector(".e").onpointerdown = ev => { ev.stopPropagation(); openFdlg(f); };
+    el.querySelector(".d").onpointerdown = ev => { ev.stopPropagation(); removeFrame(f); };
+    el.oncontextmenu = ev => { ev.preventDefault(); ev.stopPropagation(); showMenu(ev.clientX, ev.clientY, [
+      ["Edit frame…", () => openFdlg(f)], ["Remove frame", () => removeFrame(f)]]); };
+    attachFrameDrag(el, f);
+    desk.appendChild(el);
+  }
+  for (const ic of state.icons) {
+    const el = document.createElement("div");
+    el.className = "icon";
+    el._ic = ic;
+    el.style.left = ic.x + "px";
+    el.style.top = ic.y + "px";
+    el.innerHTML = '<div class="glyph"></div><div class="label"></div><div class="sub"></div>' +
+      '<div class="badge e" title="Edit">✎</div><div class="badge d" title="Remove">✕</div>';
+    const g = el.querySelector(".glyph");
+    if (isImg(ic.glyph)) {   // a link to an image: show it instead of the colored text tile
+      const im = new Image(); im.referrerPolicy = "no-referrer"; im.src = ic.glyph; im.alt = ""; im.draggable = false;
+      im.onerror = () => { g.title = "Image failed to load: " + ic.glyph; g.textContent = (ic.name || "?")[0].toUpperCase(); g.style.background = ic.color; g.style.boxShadow = ""; };
+      g.style.background = "none"; g.style.boxShadow = "none"; g.appendChild(im);
+    } else { g.textContent = ic.glyph; g.style.background = ic.color; }
+    el.querySelector(".label").textContent = ic.name;
+    if (ic.sub) el.querySelector(".sub").textContent = ic.sub; else el.querySelector(".sub").remove();
+    el.title = ic.url;
+    el.querySelector(".e").onpointerdown = ev => { ev.stopPropagation(); openDlg(ic); };
+    el.querySelector(".d").onpointerdown = ev => { ev.stopPropagation(); removeIcon(ic); };
+    el.oncontextmenu = ev => { ev.preventDefault(); ev.stopPropagation(); showMenu(ev.clientX, ev.clientY, [
+      ["Open", () => go(ic)], ["Edit…", () => openDlg(ic)], ["Remove", () => removeIcon(ic)]]); };
+    attachDrag(el, ic);
+    desk.appendChild(el);
+  }
+}
+
+function go(ic) {
+  if (!ic.url) return;
+  if (state.newTab) window.open(ic.url, "_blank", "noopener"); else location.href = ic.url;
+}
+function removeIcon(ic) {
+  if (!confirm("Remove " + ic.name + "?")) return;
+  state.icons = state.icons.filter(i => i !== ic); persist(); render();
+}
+
+function attachDrag(el, ic) {
+  let sx, sy, ox, oy, moved, down;
+  el.onpointerdown = ev => {
+    if (ev.button !== 0) return;
+    down = true; moved = false; sx = ev.clientX; sy = ev.clientY;
+    ox = el.offsetLeft; oy = el.offsetTop; el.setPointerCapture(ev.pointerId);
+  };
+  el.onpointermove = ev => {
+    if (!down) return;
+    const dx = ev.clientX - sx, dy = ev.clientY - sy;
+    if (!moved && Math.hypot(dx, dy) < 6) return;
+    moved = true; el.classList.add("drag");
+    el.style.left = ox + dx + "px"; el.style.top = oy + dy + "px";
+  };
+  el.onpointerup = ev => {
+    if (!down) return; down = false;
+    el.classList.remove("drag");
+    if (!moved) { if (!desk.classList.contains("editing")) go(ic); return; }
+    ic.x = Math.min(Math.max(Math.round(el.offsetLeft), 0), desk.clientWidth - 40);
+    ic.y = Math.min(Math.max(Math.round(el.offsetTop), 0), desk.clientHeight - 40);
+    persist(); render();
+  };
+}
+
+const isImg = g => /^(https?:\/\/|data:image\/|\.{0,2}\/)/i.test(g) || /\.(png|jpe?g|gif|svg|webp|ico|avif)([?#].*)?$/i.test(g);
+const rgba = (h, a) => { const n = parseInt(h.slice(1), 16); return `rgba(${n >> 16},${n >> 8 & 255},${n & 255},${a})`; };
+function removeFrame(f) {
+  if (!confirm("Remove frame " + (f.title || "") + "?")) return;
+  state.frames = state.frames.filter(x => x !== f); persist(); render();
+}
+function attachFrameDrag(el, f) {
+  let mode, sx, sy, o, carried = [];
+  el.onpointerdown = ev => {
+    if (ev.button !== 0) return;
+    mode = ev.target.classList.contains("grip") ? "size" : "move";
+    sx = ev.clientX; sy = ev.clientY; o = {x: f.x, y: f.y, w: f.w, h: f.h};
+    // only icons whose visible glyph or label text touches the frame travel with it
+    const fr = el.getBoundingClientRect();
+    const hit = r => r.width > 0 && r.left < fr.right && r.right > fr.left && r.top < fr.bottom && r.bottom > fr.top;
+    const visible = i => {
+      const text = n => { const rg = document.createRange(); rg.selectNodeContents(n); return [...rg.getClientRects()].some(hit); };
+      return hit(i.querySelector(".glyph").getBoundingClientRect()) || [...i.querySelectorAll(".label,.sub")].some(text);
+    };
+    carried = mode === "move" ? [...desk.querySelectorAll(".icon")].filter(visible)
+      .map(i => ({el: i, l: i.offsetLeft, t: i.offsetTop})) : [];
+    el.setPointerCapture(ev.pointerId);
+  };
+  el.onpointermove = ev => {
+    if (!mode) return;
+    const dx = ev.clientX - sx, dy = ev.clientY - sy;
+    if (mode === "move") {
+      f.x = o.x + dx; f.y = o.y + dy;
+      for (const k of carried) { k.el.style.left = k.l + dx + "px"; k.el.style.top = k.t + dy + "px"; }
+    } else { f.w = Math.max(80, o.w + dx); f.h = Math.max(60, o.h + dy); }
+    Object.assign(el.style, {left: f.x + "px", top: f.y + "px", width: f.w + "px", height: f.h + "px"});
+  };
+  el.onpointerup = ev => {
+    if (!mode) return;
+    const wasMove = mode === "move"; mode = null;
+    if (wasMove && carried.length) {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      for (const k of carried) { k.el._ic.x = Math.round(k.l + dx); k.el._ic.y = Math.round(k.t + dy); }
+    }
+    persist(); render();
+  };
+}
+
+let drawing = false;
+function startDraw() { hideMenu(); drawing = true; desk.classList.add("drawing"); $("hint").style.display = "block"; }
+function endDraw() { drawing = false; desk.classList.remove("drawing"); $("hint").style.display = "none"; }
+desk.addEventListener("pointerdown", ev => {
+  if (!drawing || ev.button !== 0) return;
+  ev.stopPropagation(); ev.preventDefault(); hideMenu();
+  const b = desk.getBoundingClientRect(), x0 = ev.clientX - b.left, y0 = ev.clientY - b.top;
+  const box = document.createElement("div");
+  box.className = "frame"; box.style.background = "rgba(255,255,255,.15)"; box.style.borderColor = "rgba(255,255,255,.6)";
+  desk.appendChild(box);
+  const mv = e => {
+    const x = e.clientX - b.left, y = e.clientY - b.top;
+    Object.assign(box.style, {left: Math.min(x, x0) + "px", top: Math.min(y, y0) + "px",
+      width: Math.abs(x - x0) + "px", height: Math.abs(y - y0) + "px"});
+  };
+  const up = () => {
+    removeEventListener("pointermove", mv); removeEventListener("pointerup", up);
+    const r = {x: box.offsetLeft, y: box.offsetTop, w: box.offsetWidth, h: box.offsetHeight};
+    box.remove(); endDraw();
+    if (r.w >= 40 && r.h >= 40) openFdlg(null, r);
+  };
+  addEventListener("pointermove", mv); addEventListener("pointerup", up);
+}, true);
+addEventListener("keydown", ev => { if (ev.key === "Escape") endDraw(); });
+$("addFrame").onclick = startDraw;
+
+let editingFrame = null, pendingRect = null;
+function openFdlg(f, rect) {
+  editingFrame = f; pendingRect = rect;
+  $("gHead").textContent = f ? "Edit frame" : "New frame";
+  $("gTitle").value = f ? f.title : "";
+  $("gColor").value = f ? f.color : "#5aa9ff";
+  $("gAlpha").value = Math.round((f ? f.alpha : .25) * 100);
+  $("gVal").textContent = $("gAlpha").value + "%";
+  $("fdlg").showModal(); $("gTitle").focus();
+}
+$("gAlpha").oninput = () => $("gVal").textContent = $("gAlpha").value + "%";
+$("gCancel").onclick = () => $("fdlg").close();
+$("gSave").onclick = () => {
+  const data = {title: $("gTitle").value.trim(), color: $("gColor").value, alpha: $("gAlpha").value / 100};
+  if (editingFrame) Object.assign(editingFrame, data);
+  else state.frames.push({id: Date.now(), ...pendingRect, ...data});
+  persist(); render(); $("fdlg").close();
+};
+
+let editing = null, pendingAt = null;
+function openDlg(ic, at) {
+  editing = ic; pendingAt = at || null;
+  $("dtitle").textContent = ic ? "Edit icon" : "Add icon";
+  $("fName").value = ic ? ic.name : "";
+  $("fSub").value = ic && ic.sub ? ic.sub : "";
+  $("fUrl").value = ic ? ic.url : "http://";
+  $("fGlyph").value = ic ? ic.glyph : "🌐";
+  $("fColor").value = ic ? ic.color : COLORS[state.icons.length % COLORS.length];
+  dlg.showModal(); $("fName").focus();
+}
+$("cancel").onclick = () => dlg.close();
+$("save").onclick = () => {
+  const name = $("fName").value.trim() || "Untitled";
+  let url = $("fUrl").value.trim();
+  if (url && !/^[a-z]+:\/\//i.test(url)) url = "http://" + url;
+  const data = {name, sub: $("fSub").value.trim(), url, glyph: $("fGlyph").value.trim() || name[0].toUpperCase(), color: $("fColor").value};
+  if (editing) Object.assign(editing, data);
+  else {
+    state.icons.push({id: Date.now(), ...data, ...(pendingAt || freeSpot())});
+  }
+  persist(); render(); dlg.close();
+};
+$("add").onclick = () => openDlg(null);
+$("edit").onclick = ev => { ev.currentTarget.classList.toggle("on"); render(); };
+
+function showMenu(x, y, items) {
+  menu.innerHTML = "";
+  const mk = ([label, fn, off]) => {
+    const d = document.createElement("div"); d.textContent = label;
+    if (off) d.className = "off"; else d.onclick = () => { hideMenu(); fn(); };
+    return d;
+  };
+  for (const it of items) {
+    if (Array.isArray(it[0])) {   // a row of side-by-side commands
+      const row = document.createElement("div"); row.className = "mrow";
+      it.forEach(sub => row.appendChild(mk(sub))); menu.appendChild(row);
+    } else menu.appendChild(mk(it));
+  }
+  menu.style.display = "block";
+  menu.style.left = Math.min(x, innerWidth - menu.offsetWidth - 6) + "px";
+  menu.style.top = Math.min(y, innerHeight - menu.offsetHeight - 6) + "px";
+}
+const hideMenu = () => menu.style.display = "none";
+addEventListener("pointerdown", ev => { if (!menu.contains(ev.target)) hideMenu(); });
+
+const moreItems = at => [
+  ["Add icon…", () => openDlg(null, at)],
+  ["Add frame", startDraw],
+  [(state.newTab ? "\u2003 " : "✓ ") + "Open links in same tab", () => { state.newTab = !state.newTab; persist(); }],
+  [["Tidy up", tidy], ["Revert", revert, !revertBuf]],
+  ["Export layout", exportJson],
+  ["Import layout…", () => $("file").click()],
+  ["Reset to defaults", () => { if (confirm("Reset everything?")) { state = structuredClone(defaults); persist(); render(); } }]
+];
+$("more").onclick = ev => { const b = ev.currentTarget.getBoundingClientRect();
+  showMenu(b.left, b.top - 8 - 7 * 36, moreItems()); };
+desk.oncontextmenu = ev => { ev.preventDefault();
+  const b = desk.getBoundingClientRect();   // new icon is centered on the click
+  const at = {x: Math.max(0, Math.round(ev.clientX - b.left - 48)), y: Math.max(0, Math.round(ev.clientY - b.top - 40))};
+  showMenu(ev.clientX, ev.clientY, moreItems(at)); };
+
+let revertBuf = null;   // memory only: icon positions from just before the last Tidy up
+function revert() {
+  if (!revertBuf) return;
+  for (const p of revertBuf) { const ic = state.icons.find(i => i.id === p.id); if (ic) { ic.x = p.x; ic.y = p.y; } }
+  persist(); render();
+}
+const ALIGN = 40;   // icons whose x (or y) lie within this many px of each other get lined up
+function alignAxis(vals) {
+  const out = vals.slice();
+  const split = idx => {   // idx = indices sorted by value; split at the biggest gap until each group is tight
+    if (vals[idx[idx.length - 1]] - vals[idx[0]] <= ALIGN) {
+      const m = vals[idx[(idx.length - 1) >> 1]];   // median: least total movement, and one icon never moves
+      idx.forEach(i => out[i] = m); return;
+    }
+    let cut = 1, gap = -1;
+    for (let k = 1; k < idx.length; k++) { const g = vals[idx[k]] - vals[idx[k - 1]]; if (g > gap) { gap = g; cut = k; } }
+    split(idx.slice(0, cut)); split(idx.slice(cut));
+  };
+  if (vals.length) split(vals.map((_, i) => i).sort((a, b) => vals[a] - vals[b]));
+  return out;
+}
+function tidy() {
+  const ics = state.icons;
+  revertBuf = ics.map(i => ({id: i.id, x: i.x, y: i.y}));
+  const sample = desk.querySelector(".icon");
+  const W = sample ? sample.offsetWidth : 96, H = sample ? sample.offsetHeight : 100;
+  const ov = (a, b) => Math.max(0, W - Math.abs(a.x - b.x)) * Math.max(0, H - Math.abs(a.y - b.y));
+  const orig = ics.map(i => ({x: i.x, y: i.y}));
+  const ax = alignAxis(orig.map(p => p.x)), ay = alignAxis(orig.map(p => p.y));
+  const cur = ics.map((_, i) => ({x: ax[i], y: ay[i]}));
+  // take the full alignment unless it would push an icon further onto a neighbor; then try x-only, y-only, or stay put
+  ics.forEach((_, i) => {
+    const tries = [{x: ax[i], y: ay[i]}, {x: ax[i], y: orig[i].y}, {x: orig[i].x, y: ay[i]}, orig[i]];
+    cur[i] = tries.find(c => ics.every((_, k) => k === i || ov(c, cur[k]) <= ov(orig[i], orig[k]))) || orig[i];
+  });
+  ics.forEach((ic, i) => { ic.x = cur[i].x; ic.y = cur[i].y; });
+  persist(); render();
+}
+function exportJson() {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], {type: "application/json"}));
+  a.download = "desktop-layout.json"; a.click();
+}
+$("file").onchange = async ev => {
+  try {
+    const d = JSON.parse(await ev.target.files[0].text());
+    if (!Array.isArray(d.icons)) throw 0;
+    state = fix(d); persist(); render();
+  } catch (e) { alert("That file is not a valid layout."); }
+  ev.target.value = "";
+};
+
+addEventListener("resize", render);
+setInterval(() => $("clock").textContent = new Date().toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"}), 1000);
+$("clock").textContent = new Date().toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"});
+render();
+pull();
+</script>
+</body>
+</html>
