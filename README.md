@@ -1,10 +1,6 @@
 # Home Desktop
 
-A single-file home page for your home server that behaves like a computer desktop. Can be managed fully from the browser, no need to edit files on the server.
-
-AI NOTE: Generated with Claude AI to contain exactly the features I want, no more or less.
-
-![Screenshot](desktop.jpg)
+A single-file, zero-dependency home page for your home server that behaves like a computer desktop. Can be managed fully from the browser, no need to edit files on the server.
 
 ## Features
 
@@ -14,6 +10,23 @@ AI NOTE: Generated with Claude AI to contain exactly the features I want, no mor
 - Layout saved on the server so every device sees the same desktop, with a copy kept in each browser as a fallback
 - Export and import the layout as a JSON file
 - No dependencies, no build step, one HTML file
+
+### AI notes:
+ - <a href="https://0rwx.com/"><img src="https://raw.githubusercontent.com/NamtaoProductions/0rwx.com/refs/heads/main/static/AI-X-light.svg" alt="AI:X" width="20"> vibe coded - no review</a>
+ - Generated with Claude AI to contain exactly the features I want, no more or less.
+ - I might suggest you do the same rather than use this project.
+
+### Security notes:
+ - **No code review!** Claude was trusted.
+ - Can run with zero server config. Unlikely to be able compromise server, no guarantees about the client.
+ - AI-generated server config appears to restrict access to the one file need to store the layout. Unlikely to be able compromise server any further than that one file.
+
+### Compatibility notes:
+ - Can be served from any server software with no config, though layout is only saved to user's browser.
+ - Server config required for layout to save onto server. Config provided below for nginx and nothing else.
+ - Page was tested with Chrome and nothing else.
+
+![Screenshot](desktop.jpg)
 
 ## Requirements
 
@@ -111,6 +124,10 @@ curl -i -X PUT --data '{"icons":[]}' http://your-server/data/layout.json
 You should get `204 No Content` (or `201 Created`). Then reload the page. The "⚠ not synced" message should not appear.
 
 ## Using it
+
+ - Left click an icon to open its page.
+ - Lift click drag to move things around.
+ - Right click for context menus.
 
 ### Tuning Tidy up
 
