@@ -1,4 +1,4 @@
-# Home Desktop
+# Home Page Desktop
 
 A single-file, zero-dependency home page for your home server that behaves like a computer desktop. Can be managed fully from the browser, no need to edit files on the server.
 
@@ -12,7 +12,7 @@ A single-file, zero-dependency home page for your home server that behaves like 
 - No dependencies, no build step, one HTML file
 
 ### AI notes:
- - <a href="https://0rwx.com/"><img src="https://raw.githubusercontent.com/NamtaoProductions/0rwx.com/refs/heads/main/static/AI-X-light.svg" alt="AI:X" width="20"> vibe coded - no review</a>
+ - <a href="https://0rwx.com/"><img src="https://raw.githubusercontent.com/NamtaoProductions/0rwx.com/refs/heads/main/static/AI-X-light.svg" alt="AI:X" width="28" align="absmiddle"> AI made this, with help from a human assistant</a>
  - Generated with Claude AI to contain exactly the features I want, no more or less.
  - I might suggest you do the same rather than use this project.
 
