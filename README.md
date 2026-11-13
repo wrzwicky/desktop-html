@@ -12,14 +12,16 @@ A single-file, zero-dependency home page for your home server that behaves like 
 - No dependencies, no build step, one HTML file
 
 ### AI notes:
- - <a href="https://0rwx.com/"><img src="https://raw.githubusercontent.com/NamtaoProductions/0rwx.com/refs/heads/main/static/AI-X-light.svg" alt="AI:X" width="28" align="absmiddle"> AI made this, [...] 
+ - <a href="https://0rwx.com/"><img src="https://raw.githubusercontent.com/NamtaoProductions/0rwx.com/refs/heads/main/static/AI-X-light.svg" alt="AI:X" width="28" align="absmiddle"> AI made this, with help from a human assistant</a>
  - Generated with Claude AI to contain exactly the features I want, no more or less.
  - I might suggest you do the same rather than use this project.
 
 ### Security notes:
  - **No code review!** Claude was trusted.
- - Can run with zero server config. Unlikely to be able compromise server, no guarantees about the client.
- - AI-generated server config appears to restrict access to the one file need to store the layout. Unlikely to be able compromise server any further than that one file.
+ - Can run with zero server config. Should be unable to compromise server, no guarantees about the client.
+ - AI-generated server config appears to restrict access to the one file needed to store the layout. Unlikely to be able compromise server any further than that one file.
+ - To add requirement for a password as well, configure authentication for PUT requests.
+ - Anyone who can reach the page can read the layout file. Don't put secrets in icon URLs or text fields.
 
 ### Compatibility notes:
  - Can be served from any server software with no config, though layout is only saved to user's browser.
@@ -49,9 +51,11 @@ Open `http://your-server/desktop.html`. You should see the desktop with three ex
 
 ### 2. Enable server-side saving (optional)
 
-This makes the layout shared across all your devices. Choose the instructions for your server.
+This kwill make the layout shared across all your devices. Choose the instructions for your server.
 
-#### nginx
+#### 2x. Enable DAV on nginx
+
+<details>
 
 **a. Check that nginx has the DAV module**
 
@@ -94,7 +98,7 @@ location = /data/layout.json {
         allow ::1;
         allow fe80::/10;
         allow fc00::/7;
-        # allow 2001:db8:1234:5678::/64;   # your ISP-assigned IPv6 prefix, if needed (see Troubleshooting)
+        # allow 2001:db8:1234:5678::/64;   # ISP-assigned IPv6 prefix if needed (my router has the same v6 IP inside and out)
         deny all;
     }
 }
@@ -116,15 +120,12 @@ const SERVER = "data/layout.json";
 
 **e. Verify**
 
-From another machine on your LAN:
+Open the page in your browser.
+</details>
 
-```
-curl -i -X PUT --data '{"icons":[]}' http://your-server/data/layout.json
-```
+#### 2x. Enable DAV on Apache 2
 
-You should get `204 No Content` (or `201 Created`). Then reload the page. The "⚠ not synced" message should not appear.
-
-#### Apache 2.4 (Debian/Ubuntu)
+<details>
 
 The repository includes a ready-to-install Apache configuration at [`apache2/desktop-html.conf`](apache2/desktop-html.conf). It enables WebDAV only for the data directory, limits it to GET/HEAD/PUT, restricts writes to LAN addresses, and denies requests to other paths in `/data/`. Adjust the allowed LAN ranges and web-root paths in the file to suit your setup.
 
@@ -140,13 +141,12 @@ sudo chown www-data:www-data /var/lib/dav/desktop-html
 
 ```
 sudo mkdir -p /var/www/html/data
-echo '{}' | sudo tee /var/www/html/data/layout.json
 sudo chown -R www-data:www-data /var/www/html/data
-sudo cp apache2/desktop-html.conf /etc/apache2/conf-available/desktop-html.conf
+sudo cp desktop-html.conf /etc/apache2/conf-available/desktop-html.conf
 sudo a2enconf desktop-html
 ```
 
-The Apache worker user needs write access to the data directory and DAV lock directory. On Debian/Ubuntu this is normally `www-data`; check your Apache `User` setting if yours differs. Keep the rest of the web root read-only to Apache.
+The Apache server needs write access to the data directory and DAV lock directory. On Debian/Ubuntu this is normally `www-data`; check your Apache `User` setting if yours differs. Keep the rest of the web root read-only to Apache.
 
 **c. Test and reload Apache**
 
@@ -154,15 +154,19 @@ The Apache worker user needs write access to the data directory and DAV lock dir
 sudo apachectl configtest && sudo systemctl reload apache2
 ```
 
-**d. Point the page at the file and verify**
 
-The default `const SERVER = "data/layout.json";` already matches this configuration when the page is served from `/var/www/html`. If you change the URL or web root, update `SERVER` in `desktop.html` too. Test from a LAN client:
+**d. Point the page at the file**
 
+Near the top of the script in the HTML file, find this line and set it to match the location above:
+
+```js
+const SERVER = "data/layout.json";
 ```
-curl -i -X PUT --data '{"icons":[]}' http://your-server/data/layout.json
-```
 
-A successful replacement should return `204 No Content`. Reload the page; the "⚠ not synced" message should not appear. If the server is behind a reverse proxy or accessed via a public IPv6 address, update the allowed addresses accordingly.
+**e. Verify**
+
+Open the page in your browser.
+</details>
 
 ## Using it
 
@@ -192,9 +196,3 @@ If the taskbar shows **⚠ not synced**, hover over it. The tooltip shows the fa
 **IPv6:** if your device reaches the server over IPv6, the error log shows a public address like `2603:...`. Add that address's first four groups as a `/64` to the `allow` list (for example `allow 2603:abcd:1234:5678::/64;`).
 
 **Layout reverted or looks different on another device:** the page keeps a local copy in each browser and loads the server copy on startup. Make sure no "not synced" message is showing on the device where you made changes.
-
-## Security notes
-
-- Anyone who can reach the page can read the layout, including your service URLs. Don't put secrets in icon URLs.
-- Writes are limited to the addresses in the server configuration. To require a password as well, configure authentication for PUT requests.
-- Only the `data/layout.json` endpoint is writable through the included Apache configuration; nginx's configuration should likewise be scoped to that one file. The page itself is not writable by the web server.
